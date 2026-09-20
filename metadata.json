@@ -1,0 +1,10 @@
+{
+  "name": "Remix Remix BLUENILLA POS \u0026 Multi-Role Enterprise",
+  "description": "Cross-platform offline-first POS and enterprise workspace for Sales, Storeroom, Accounts, HR, Manager, and IT with automated sync, barcode scanning, biometric auth, and GDPR compliance.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,170 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Hive Admin has super_root authority across the platform
+    function isHiveAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'giantacutewave@gmail.com' ||
+        request.auth.token.email == 'aqutewavedev@gmail.com' ||
+        request.auth.token.email == 'admin.it@bluenilla.com' ||
+        exists(/databases/$(database)/documents/hive_admins/$(request.auth.uid))
+      );
+    }
+
+    // Tenant Shop Users check: strictly isolated to tenantId custom claim or Firestore user doc
+    function isTenantUser(tenantId) {
+      return isSignedIn() && (
+        (request.auth.token.tenantId != null && request.auth.token.tenantId == tenantId) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId)
+      );
+    }
+
+    // Verify that the tenant status is 'active'
+    function isTenantActive(tenantId) {
+      let tenantDoc = /databases/$(database)/documents/tenants/$(tenantId);
+      return exists(tenantDoc) && get(tenantDoc).data.status == 'active';
+    }
+
+    // Verify that specific module requested is set to true in /tenants/{tenantId}/settings/modules
+    function isModuleEnabled(tenantId, moduleKey) {
+      let modDoc = /databases/$(database)/documents/tenants/$(tenantId)/settings/modules;
+      return exists(modDoc) && (
+        get(modDoc).data[moduleKey] == true ||
+        (moduleKey == 'inventory' && get(modDoc).data.storeroom == true) ||
+        (moduleKey == 'storeroom' && get(modDoc).data.inventory == true) ||
+        (moduleKey == 'reports' && get(modDoc).data.manager == true) ||
+        (moduleKey == 'manager' && get(modDoc).data.reports == true)
+      );
+    }
+
+    // Gated module access check: User belongs to tenant, tenant is active, and module flag is true
+    function canAccessTenantModule(tenantId, moduleKey) {
+      return isHiveAdmin() || (
+        isTenantUser(tenantId) &&
+        isTenantActive(tenantId) &&
+        isModuleEnabled(tenantId, moduleKey)
+      );
+    }
+
+    // 1. Hive Admins registry (/hive_admins/{adminId})
+    match /hive_admins/{adminId} {
+      allow read, write: if isHiveAdmin();
+    }
+
+    // 2. User Profiles (/users/{userId}) - Strictly isolated: own account, or same tenant non-host staff
+    match /users/{userId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId || 
+        isHiveAdmin() || 
+        (resource.data.tenantId != null && isTenantUser(resource.data.tenantId) && resource.data.role != 'system_host')
+      );
+      allow write: if isSignedIn() && (request.auth.uid == userId || isHiveAdmin());
+
+      match /{allPaths=**} {
+        allow read, write: if isSignedIn() && (request.auth.uid == userId || isHiveAdmin());
+      }
+    }
+
+    // 3. Hive Central Platform State & Backups
+    match /hive/platform_state {
+      allow read: if true;
+      allow write: if isHiveAdmin();
+    }
+
+    match /hive/{allPaths=**} {
+      allow read, write: if isHiveAdmin();
+    }
+
+    // 4. Tenant Business Management & Isolated Partitions (/tenants/{tenantId})
+    match /tenants/{tenantId} {
+      // Super Admin manages tenants; Tenant users can read their active profile and edit their shop details
+      allow read: if isHiveAdmin() || isTenantUser(tenantId);
+      allow write: if isHiveAdmin() || isTenantUser(tenantId);
+
+      // Module Gating Configuration (/tenants/{tenantId}/settings/modules)
+      match /settings/modules {
+        allow read: if isHiveAdmin() || isTenantUser(tenantId);
+        allow write: if isHiveAdmin();
+      }
+
+      // Subscription Details (/tenants/{tenantId}/subscription/details)
+      match /subscription/details {
+        allow read: if isHiveAdmin() || isTenantUser(tenantId);
+        allow write: if isHiveAdmin();
+      }
+
+      // Shop Configuration & Branding (Requires active tenant)
+      match /config/{allConfig=**} {
+        allow read: if isHiveAdmin() || (isTenantUser(tenantId) && isTenantActive(tenantId));
+        allow write: if isHiveAdmin() || (isTenantUser(tenantId) && isTenantActive(tenantId));
+      }
+
+      // Gated Module: Products & Storeroom Inventory
+      match /products/{productId} {
+        allow read, write: if canAccessTenantModule(tenantId, 'inventory');
+      }
+
+      // Gated Module: Sales POS & Transactions
+      match /transactions/{transactionId} {
+        allow read, write: if canAccessTenantModule(tenantId, 'sales');
+      }
+
+      // Gated Module: Parked Orders & Suspended Tills
+      match /parked_orders/{orderId} {
+        allow read, write: if canAccessTenantModule(tenantId, 'sales');
+      }
+
+      // Gated Module: HR Workforce & Shifts
+      match /shifts/{shiftId} {
+        allow read, write: if canAccessTenantModule(tenantId, 'hr');
+      }
+
+      // Gated Module: Accounts, Invoicing & Z-Reports
+      match /accounts/{docId} {
+        allow read, write: if canAccessTenantModule(tenantId, 'accounts');
+      }
+      match /z_reports/{reportId} {
+        allow read, write: if canAccessTenantModule(tenantId, 'accounts');
+      }
+
+      // Gated Module: IT Systems & Registered Terminals
+      match /terminals/{terminalId} {
+        allow read, write: if canAccessTenantModule(tenantId, 'it');
+      }
+
+      // Tenant Shop Backups
+      match /backups/{backupId} {
+        allow read, write: if isHiveAdmin() || (isTenantUser(tenantId) && isTenantActive(tenantId));
+      }
+
+      // Tenant Automated Repair Logs
+      match /repair_logs/{logId} {
+        allow read, write: if isHiveAdmin() || (isTenantUser(tenantId) && isTenantActive(tenantId));
+      }
+
+      // Fallback for general tenant subpaths
+      match /{allPaths=**} {
+        allow read: if isHiveAdmin() || (isTenantUser(tenantId) && isTenantActive(tenantId));
+        allow write: if isHiveAdmin() || (isTenantUser(tenantId) && isTenantActive(tenantId));
+      }
+    }
+
+    // 5. Tenant & Hive Communications (Inside-App Live Chat, Email, SMS, WhatsApp Logs)
+    match /communications/{commId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // 6. Audit Logs, Activities & Database Synchronization Records
+    match /audit_logs/{logId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}
+

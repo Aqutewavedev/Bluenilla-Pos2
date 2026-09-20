@@ -1,0 +1,313 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile & Operator Account",
+      "description": "User account profile with role, tenant membership, and permissions. Each user only accesses their own profile.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "email": { "type": "string", "maxLength": 150 },
+        "role": { "type": "string", "maxLength": 64 },
+        "userCategory": { "type": "string", "maxLength": 64 },
+        "workspace": { "type": "string", "maxLength": 64 },
+        "tenantId": { "type": "string", "maxLength": 64 },
+        "branchId": { "type": "string", "maxLength": 64 },
+        "branchName": { "type": "string", "maxLength": 150 },
+        "pin": { "type": "string", "maxLength": 16 },
+        "avatar": { "type": "string", "maxLength": 500 },
+        "lastLogin": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "HiveAdmin": {
+      "title": "Hive Platform Super Admin",
+      "description": "Central super root authority record for platform host management.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 150 },
+        "role": { "type": "string", "enum": ["super_root", "hive_supervisor", "support_admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role"]
+    },
+    "TenantRecord": {
+      "title": "Tenant Business Directory Record",
+      "description": "Tenant business organization account and operational status.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "businessName": { "type": "string", "maxLength": 150 },
+        "ownerEmail": { "type": "string", "format": "email", "maxLength": 150 },
+        "status": { "type": "string", "enum": ["active", "suspended", "trial"] },
+        "plan": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["businessName", "ownerEmail", "status"]
+    },
+    "TenantModuleSettings": {
+      "title": "Tenant Module Gating Configuration",
+      "description": "Hive master control flags for main modules and granular submodules.",
+      "type": "object",
+      "properties": {
+        "inventory": { "type": "boolean" },
+        "reports": { "type": "boolean" },
+        "multiStore": { "type": "boolean" },
+        "sales": { "type": "boolean" },
+        "storeroom": { "type": "boolean" },
+        "accounts": { "type": "boolean" },
+        "hr": { "type": "boolean" },
+        "manager": { "type": "boolean" },
+        "it": { "type": "boolean" },
+        "submodules": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["inventory", "reports", "multiStore"]
+    },
+    "TenantSubscriptionDetails": {
+      "title": "Tenant Subscription Details",
+      "description": "Active tier plan, monthly fee, and expiration timestamp.",
+      "type": "object",
+      "properties": {
+        "plan": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["active", "suspended", "trial"] },
+        "monthlyFee": { "type": "number" },
+        "billingCycle": { "type": "string", "enum": ["monthly", "annual"] },
+        "expiresAt": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["plan", "expiresAt"]
+    },
+    "HivePlatformBackup": {
+      "title": "Hive Platform Backup Snapshot",
+      "description": "Central Hive platform-level backup snapshot, restricted from individual tenant access.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string", "maxLength": 100 },
+        "scope": { "type": "string", "enum": ["hive_central"] },
+        "folderPath": { "type": "string", "maxLength": 256 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "totalTenants": { "type": "number" },
+        "stats": { "type": "object" },
+        "dataSnapshot": { "type": "object" }
+      },
+      "required": ["id", "createdAt", "createdBy", "scope", "folderPath"]
+    },
+    "HivePlatformState": {
+      "title": "Hive Central Platform State",
+      "description": "Global multi-tenant system health, active cluster metrics, and fleet status.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "totalTenants": { "type": "number" },
+        "activeTerminals": { "type": "number" },
+        "systemHealth": { "type": "string", "maxLength": 32 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "totalTenants", "activeTerminals"]
+    },
+    "HiveTenantRegistry": {
+      "title": "Hive Tenant Registration",
+      "description": "Global directory of business tenants registered on the platform.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "tenantId": { "type": "string", "maxLength": 64 },
+        "tenantName": { "type": "string", "maxLength": 128 },
+        "businessName": { "type": "string", "maxLength": 128 },
+        "subdomain": { "type": "string", "maxLength": 128 },
+        "plan": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "maxLength": 32 }
+      },
+      "required": ["id", "tenantId", "businessName"]
+    },
+    "TenantShopConfig": {
+      "title": "Tenant Shop Configuration",
+      "description": "Tenant shop branding, receipt layout, tax settings, and POS frontend operational rules.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string", "maxLength": 64 },
+        "businessName": { "type": "string", "maxLength": 120 },
+        "branding": { "type": "object" },
+        "modules": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tenantId", "businessName", "branding", "modules"]
+    },
+    "TenantProduct": {
+      "title": "Tenant Product Item",
+      "description": "Tenant-specific product inventory catalog item with price, stock, and barcode.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 150 },
+        "price": { "type": "number" },
+        "stock": { "type": "number" },
+        "barcode": { "type": "string", "maxLength": 64 },
+        "category": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "name", "price", "stock"]
+    },
+    "TenantTransaction": {
+      "title": "Tenant Transaction Record",
+      "description": "Tenant sales transactions and point-of-sale orders.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "tenantId": { "type": "string", "maxLength": 64 },
+        "receiptNumber": { "type": "string", "maxLength": 64 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "total": { "type": "number" },
+        "subtotal": { "type": "number" },
+        "taxTotal": { "type": "number" },
+        "discountTotal": { "type": "number" },
+        "status": { "type": "string", "enum": ["completed", "parked", "refunded", "voided"] },
+        "cashierName": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "timestamp", "total", "status"]
+    },
+    "TenantParkedOrder": {
+      "title": "Tenant Parked Order",
+      "description": "Suspended cart order for later checkout.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "total": { "type": "number" },
+        "parkedAt": { "type": "string", "format": "date-time" },
+        "cashierName": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "total", "parkedAt"]
+    },
+    "TenantShift": {
+      "title": "Tenant Staff Shift Record",
+      "description": "Cashier and staff clock-in / clock-out shift attendance record. Accessible by the specific user and shop manager.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 64 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "userEmail": { "type": "string", "maxLength": 150 },
+        "clockIn": { "type": "string", "maxLength": 64 },
+        "hoursWorked": { "type": "number" },
+        "hourlyRate": { "type": "number" },
+        "status": { "type": "string", "maxLength": 32 }
+      },
+      "required": ["id", "userId", "userName", "clockIn", "status"]
+    },
+    "TenantTerminal": {
+      "title": "Tenant Register Terminal",
+      "description": "Hardware till device registered to this shop partition.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "terminalCode": { "type": "string", "maxLength": 32 },
+        "name": { "type": "string", "maxLength": 100 },
+        "tenantId": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "maxLength": 32 }
+      },
+      "required": ["id", "terminalCode", "tenantId"]
+    },
+    "TenantBackup": {
+      "title": "Tenant Isolated Backup Snapshot",
+      "description": "Tenant-isolated point-in-time backup snapshot. Allows shop to backup and restore its own data.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string", "maxLength": 100 },
+        "scope": { "type": "string", "enum": ["tenant_isolated"] },
+        "folderPath": { "type": "string", "maxLength": 256 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "stats": { "type": "object" },
+        "dataSnapshot": { "type": "object" }
+      },
+      "required": ["id", "tenantId", "createdAt", "createdBy", "scope", "folderPath"]
+    },
+    "TenantRepairLog": {
+      "title": "Tenant Error Aid & Repair Log",
+      "description": "Audit trail of admin CRUD corrections and front-end work error repairs.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 64 },
+        "anomalyType": { "type": "string", "maxLength": 64 },
+        "actionTaken": { "type": "string", "maxLength": 500 },
+        "resolvedAt": { "type": "string", "format": "date-time" },
+        "resolvedBy": { "type": "string", "maxLength": 100 },
+        "itemsAffected": { "type": "number" }
+      },
+      "required": ["id", "tenantId", "anomalyType", "actionTaken", "resolvedAt", "resolvedBy"]
+    }
+  },
+  "firestore": {
+    "/hive_admins/{adminId}": {
+      "schema": { "$ref": "#/entities/HiveAdmin" },
+      "description": "Super root platform administrators with authority over tenants, modules, and subscriptions."
+    },
+    "/tenants/{tenantId}": {
+      "schema": { "$ref": "#/entities/TenantRecord" },
+      "description": "Tenant business organization directory record and operational status."
+    },
+    "/tenants/{tenantId}/settings/modules": {
+      "schema": { "$ref": "#/entities/TenantModuleSettings" },
+      "description": "Module gating feature flags for tenant access control by Hive."
+    },
+    "/tenants/{tenantId}/subscription/details": {
+      "schema": { "$ref": "#/entities/TenantSubscriptionDetails" },
+      "description": "Subscription tier plan, fee, and expiration timestamp."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile records. Each user can only read and edit their own user profile."
+    },
+    "/hive/platform_state": {
+      "schema": { "$ref": "#/entities/HivePlatformState" },
+      "description": "Central Hive platform health and cluster status, accessible only by Hive Root Host."
+    },
+    "/hive/platform/tenants/{tenantDocId}": {
+      "schema": { "$ref": "#/entities/HiveTenantRegistry" },
+      "description": "Central registry of business tenants on the platform."
+    },
+    "/hive/platform/backups/{backupId}": {
+      "schema": { "$ref": "#/entities/HivePlatformBackup" },
+      "description": "Central platform backup storage restricted to Hive Master authority."
+    },
+    "/tenants/{tenantId}/config/shop_config": {
+      "schema": { "$ref": "#/entities/TenantShopConfig" },
+      "description": "Tenant isolated shop settings, modules, and receipt branding."
+    },
+    "/tenants/{tenantId}/products/{productId}": {
+      "schema": { "$ref": "#/entities/TenantProduct" },
+      "description": "Tenant isolated catalog products and stock inventory."
+    },
+    "/tenants/{tenantId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/TenantTransaction" },
+      "description": "Tenant sales ledger and order audit records."
+    },
+    "/tenants/{tenantId}/parked_orders/{orderId}": {
+      "schema": { "$ref": "#/entities/TenantParkedOrder" },
+      "description": "Tenant parked orders temporarily suspended at POS."
+    },
+    "/tenants/{tenantId}/shifts/{shiftId}": {
+      "schema": { "$ref": "#/entities/TenantShift" },
+      "description": "Tenant staff shifts. Users access only their own shifts, and managers access shop shifts."
+    },
+    "/tenants/{tenantId}/terminals/{terminalId}": {
+      "schema": { "$ref": "#/entities/TenantTerminal" },
+      "description": "Hardware POS registers paired to this shop tenant."
+    },
+    "/tenants/{tenantId}/backups/{backupId}": {
+      "schema": { "$ref": "#/entities/TenantBackup" },
+      "description": "Tenant isolated point-in-time catalog and transaction backups."
+    },
+    "/tenants/{tenantId}/repair_logs/{logId}": {
+      "schema": { "$ref": "#/entities/TenantRepairLog" },
+      "description": "Tenant audit log of error-aid automated corrections."
+    }
+  }
+}
