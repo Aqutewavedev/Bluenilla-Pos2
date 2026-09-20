@@ -53,6 +53,12 @@ service cloud.firestore {
       );
     }
 
+    // Connection health check document
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // 1. Hive Admins registry (/hive_admins/{adminId})
     match /hive_admins/{adminId} {
       allow read, write: if isHiveAdmin();

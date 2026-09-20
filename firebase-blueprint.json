@@ -242,6 +242,14 @@
         "itemsAffected": { "type": "number" }
       },
       "required": ["id", "tenantId", "anomalyType", "actionTaken", "resolvedAt", "resolvedBy"]
+    },
+    "ConnectionTest": {
+      "title": "Connection Test Document",
+      "description": "Probe document for health checking Firestore connectivity.",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "maxLength": 64 }
+      }
     }
   },
   "firestore": {
@@ -308,6 +316,10 @@
     "/tenants/{tenantId}/repair_logs/{logId}": {
       "schema": { "$ref": "#/entities/TenantRepairLog" },
       "description": "Tenant audit log of error-aid automated corrections."
+    },
+    "/test/{docId}": {
+      "schema": { "$ref": "#/entities/ConnectionTest" },
+      "description": "Probe path used to test connectivity to Cloud Firestore."
     }
   }
 }

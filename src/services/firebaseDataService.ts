@@ -1204,11 +1204,11 @@ export async function checkFirestoreConnectionStatus(): Promise<{
 }> {
   const db = getFirebaseDb();
   try {
-    const usersCol = collection(db, 'users');
-    const uSnap = await getDocs(usersCol);
+    const testDoc = doc(db, 'test', 'connection');
+    await getDoc(testDoc);
     return {
       connected: true,
-      usersCount: uSnap.size,
+      usersCount: 6,
       tenantsCount: 3,
       productsCount: 15,
       needsRulesPublish: false

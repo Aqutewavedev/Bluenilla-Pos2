@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { 
   getFirestore, 
+  initializeFirestore,
   Firestore, 
   collection, 
   doc, 
@@ -24,17 +25,17 @@ import {
   User as FirebaseUser 
 } from 'firebase/auth';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
-import firebaseConfigData from '../../firebase-applet-config.json';
+import firebaseConfigData from '@/firebase-applet-config.json';
 
-// Master Firebase Configuration matching user's bluenilla-60232 project
+// Master Firebase Configuration matching active project
 export const firebaseConfig = {
-  apiKey: firebaseConfigData.apiKey || "AIzaSyA5_AzRis5o5Mop9HaTXUaxL4xRUVYpwDE",
-  authDomain: firebaseConfigData.authDomain || "bluenilla-60232.firebaseapp.com",
-  projectId: firebaseConfigData.projectId || "bluenilla-60232",
-  storageBucket: firebaseConfigData.storageBucket || "bluenilla-60232.firebasestorage.app",
-  messagingSenderId: firebaseConfigData.messagingSenderId || "703578451455",
-  appId: firebaseConfigData.appId || "1:703578451455:web:6c20f51874ba94f6768bca",
-  measurementId: firebaseConfigData.measurementId || "G-MZ7NWV0T9B"
+  apiKey: firebaseConfigData.apiKey,
+  authDomain: firebaseConfigData.authDomain,
+  projectId: firebaseConfigData.projectId,
+  storageBucket: firebaseConfigData.storageBucket,
+  messagingSenderId: firebaseConfigData.messagingSenderId,
+  appId: firebaseConfigData.appId,
+  measurementId: firebaseConfigData.measurementId || undefined
 };
 
 let app: FirebaseApp | null = null;
@@ -64,11 +65,15 @@ export function getFirebaseAuth(): Auth {
 export function getFirebaseDb(): Firestore {
   if (!db) {
     const firebaseApp = getFirebaseApp();
-    const dbId = firebaseConfigData.firestoreDatabaseId;
-    if (dbId && dbId !== '(default)') {
-      db = getFirestore(firebaseApp, dbId);
-    } else {
-      db = getFirestore(firebaseApp);
+    const dbId = firebaseConfigData.firestoreDatabaseId && firebaseConfigData.firestoreDatabaseId !== '(default)'
+      ? firebaseConfigData.firestoreDatabaseId
+      : undefined;
+    try {
+      db = initializeFirestore(firebaseApp, {
+        experimentalAutoDetectLongPolling: true,
+      }, dbId);
+    } catch {
+      db = dbId ? getFirestore(firebaseApp, dbId) : getFirestore(firebaseApp);
     }
   }
   return db;
@@ -168,8 +173,8 @@ export async function testFirestoreConnection(): Promise<{ connected: boolean; m
     try {
       await getDocFromServer(testDocRef);
     } catch (e: any) {
-      if (e instanceof Error && e.message.includes('the client is offline')) {
-        console.warn("Please check your Firebase configuration.");
+      if (e instanceof Error && (e.message.includes('the client is offline') || (e as any).code === 'unavailable')) {
+        console.warn("Firestore operates in offline/local persistence mode when remote network is unavailable.");
       }
       // If permission-denied or document-not-found, the network handshake succeeded to Firestore
     }
@@ -188,11 +193,15 @@ export async function testFirestoreConnection(): Promise<{ connected: boolean; m
   }
 }
 
-// Run boot validation
+// Run boot validation safely when in browser runtime
 if (typeof window !== 'undefined') {
-  testFirestoreConnection().catch(err => {
-    console.debug('Initial Firestore handshake:', err?.message || err);
-  });
+  setTimeout(() => {
+    if (typeof navigator === 'undefined' || navigator.onLine) {
+      testFirestoreConnection().catch(err => {
+        console.debug('Initial Firestore handshake:', err?.message || err);
+      });
+    }
+  }, 300);
 }
 
 // --------------------------------------------------------------------------
